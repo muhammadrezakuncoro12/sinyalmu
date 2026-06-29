@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoring Tiang per RW/RT</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.3/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+      padding: 24px;
+    }
+    h1, h2, h3 { margin-top: 0; }
+    p { color: var(--muted); }
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .toolbar-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: #ccfbf1;
+      color: #115e59;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      margin-bottom: 16px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      background: #fff;
+    }
+    .card:hover { border-color: var(--primary); }
+    .rw-card { cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; }
+    .rw-left {
+      display: grid;
+      gap: 6px;
+    }
+    .rw-title { font-weight: bold; font-size: 18px; margin: 0; }
+    .rw-kelurahan { color: var(--muted); font-size: 14px; }
+    .rw-right {
+      text-align: right;
+      display: grid;
+      gap: 6px;
+      align-items: end;
+    }
+    .rw-meta { color: var(--muted); font-size: 14px; }
+    .rw-total {
+      font-size: 26px;
+      font-weight: bold;
+      color: var(--primary);
+      margin: 0;
+    }
+    form {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .row { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+    input, button {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: var(--primary-dark); }
+    .btn-secondary { background: #e2e8f0; color: var(--text); }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-warning { background: var(--warning); }
+    .btn-warning:hover { background: #d97706; }
+    .list { display: grid; gap: 10px; }
+    .summary-box {
+      margin: 16px 0 20px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #f8fafc;
+    }
+    .summary-box table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .summary-box th, .summary-box td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-box th {
+      background: #e2e8f0;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .undo-bar {
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: 12px 14px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .undo-bar.hidden { display: none; }
+    .undo-bar button {
+      background: #f59e0b;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+    .undo-bar button:hover { background: #d97706; }
+    .item {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .item strong { font-size: 15px; }
+    .item .small { color: var(--muted); font-size: 13px; }
+    .count-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .count-box input {
+      width: 90px;
+      text-align: center;
+    }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hidden { display: none; }
+    @media (max-width: 680px) {
+      .row { grid-template-columns: 1fr; }
+      .item { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="toolbar">
+      <div>
+        <h1>Monitoring Tiang per RW/RT</h1>
+        <p>Catat jumlah tiang yang sudah ditanam, lalu edit saat ada penambahan atau pencabutan.</p>
+      </div>
+      <div class="toolbar-actions">
+        <button class="btn-secondary" id="exportBtn" type="button">Export Excel</button>
+        <div class="badge" id="summaryBadge">Total semua RW: 0 tiang</div>
+      </div>
+    </div>
+
+    <div class="undo-bar hidden" id="undoBar">
+      <span id="undoText">Item dihapus.</span>
+      <button type="button" id="undoBtn">Undo</button>
+    </div>
+
+    <div id="homeView">
+      <form id="rwForm">
+        <div class="row">
+          <input type="text" id="rwName" placeholder="Contoh: RW 1" required />
+          <input type="text" id="kelurahanName" placeholder="Kelurahan (misal: Jatinegara)" required />
+        </div>
+        <button type="submit">Tambah RW Baru</button>
+      </form>
+      <div class="summary-box" id="summaryTable"></div>
+      <div class="grid" id="rwGrid"></div>
+    </div>
+
+    <div id="detailView" class="hidden">
+      <button class="btn-secondary" id="backBtn" type="button">← Kembali ke daftar RW</button>
+      <h2 id="detailTitle">Detail RW</h2>
+      <p id="detailSubtitle">Jumlah tiang per RT</p>
+
+      <form id="rtForm">
+        <div class="row">
+          <input type="text" id="rtName" placeholder="Contoh: RT 01" required />
+          <input type="number" id="rtCount" placeholder="Jumlah tiang" min="0" value="0" required />
+        </div>
+        <button type="submit">Tambah RT</button>
+      </form>
+
+      <div class="list" id="rtList"></div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'poleTrackerDataV1';
+    const defaultData = [
+      {
+        id: 'rw-1',
+        name: 'RW 1',
+        kelurahan: 'Jatinegara',
+        rts: [
+          { id: 'rt-1', name: 'RT 01', count: 120 },
+          { id: 'rt-2', name: 'RT 02', count: 95 }
+        ]
+      },
+      {
+        id: 'rw-2',
+        name: 'RW 2',
+        kelurahan: 'Jatinegara',
+        rts: [
+          { id: 'rt-3', name: 'RT 01', count: 88 },
+          { id: 'rt-4', name: 'RT 02', count: 110 }
+        ]
+      },
+      {
+        id: 'rw-3',
+        name: 'RW 3',
+        kelurahan: 'Jatinegara',
+        rts: [
+          { id: 'rt-5', name: 'RT 01', count: 76 }
+        ]
+      }
+    ];
+
+    let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultData;
+    let currentRwId = null;
+    let undoAction = null;
+
+    const rwGrid = document.getElementById('rwGrid');
+    const rwForm = document.getElementById('rwForm');
+    const rwNameInput = document.getElementById('rwName');
+    const kelurahanNameInput = document.getElementById('kelurahanName');
+    const homeView = document.getElementById('homeView');
+    const detailView = document.getElementById('detailView');
+    const detailTitle = document.getElementById('detailTitle');
+    const detailSubtitle = document.getElementById('detailSubtitle');
+    const rtForm = document.getElementById('rtForm');
+    const rtNameInput = document.getElementById('rtName');
+    const rtCountInput = document.getElementById('rtCount');
+    const rtList = document.getElementById('rtList');
+    const backBtn = document.getElementById('backBtn');
+    const summaryBadge = document.getElementById('summaryBadge');
+    const summaryTable = document.getElementById('summaryTable');
+    const exportBtn = document.getElementById('exportBtn');
+    const undoBar = document.getElementById('undoBar');
+    const undoText = document.getElementById('undoText');
+    const undoBtn = document.getElementById('undoBtn');
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function showUndo(message, action) {
+      undoAction = action;
+      undoText.textContent = message;
+      undoBar.classList.remove('hidden');
+    }
+
+    function hideUndo() {
+      undoAction = null;
+      undoBar.classList.add('hidden');
+    }
+
+    undoBtn.addEventListener('click', () => {
+      if (!undoAction) return;
+      undoAction();
+      hideUndo();
+      saveData();
+      renderHome();
+      if (currentRwId) renderDetail();
+    });
+
+    function getRwTotal(rw) {
+      return rw.rts.reduce((sum, rt) => sum + Number(rt.count || 0), 0);
+    }
+
+    function getGrandTotal() {
+      return data.reduce((sum, rw) => sum + getRwTotal(rw), 0);
+    }
+
+    function renderSummary() {
+      summaryBadge.textContent = `Total semua RW: ${getGrandTotal()} tiang`;
+      if (!data.length) {
+        summaryTable.innerHTML = '';
+        return;
+      }
+
+      const rows = data.map((rw) => {
+        const total = getRwTotal(rw);
+        return `<tr><td>${rw.name}</td><td>${rw.kelurahan}</td><td>${rw.rts.length} RT</td><td>${total} tiang</td></tr>`;
+      }).join('');
+
+      summaryTable.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>RW</th>
+              <th>Kelurahan</th>
+              <th>Jumlah RT</th>
+              <th>Total Tiang</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderHome() {
+      homeView.classList.remove('hidden');
+      detailView.classList.add('hidden');
+      rwGrid.innerHTML = '';
+
+      if (!data.length) {
+        rwGrid.innerHTML = '<div class="card"><p>Belum ada RW. Tambahkan RW pertama.</p></div>';
+        renderSummary();
+        return;
+      }
+
+      data.forEach((rw) => {
+        const card = document.createElement('div');
+        card.className = 'card rw-card';
+        card.innerHTML = `
+          <div class="rw-left">
+            <div class="rw-title">${rw.name}</div>
+            <div class="rw-kelurahan">Kelurahan ${rw.kelurahan}</div>
+            <div class="rw-meta">${rw.rts.length} RT terdaftar</div>
+            <div class="small">Klik untuk melihat detail RT</div>
+          </div>
+          <div class="rw-right">
+            <div class="rw-meta">${rw.rts.length} RT</div>
+            <div class="rw-total">${getRwTotal(rw)} tiang</div>
+            <button class="btn-danger btn-small rw-delete" type="button">Hapus RW</button>
+          </div>
+        `;
+        const deleteBtn = card.querySelector('.rw-delete');
+        deleteBtn.addEventListener('click', (event) => {
+          event.stopPropagation();
+          const removedRw = rw;
+          data = data.filter((item) => item.id !== rw.id);
+          saveData();
+          renderSummary();
+          renderHome();
+          showUndo(`RW ${rw.name} dihapus.`, () => {
+            data.unshift(removedRw);
+            saveData();
+            renderHome();
+          });
+        });
+
+        card.addEventListener('click', () => {
+          currentRwId = rw.id;
+          renderDetail();
+        });
+        rwGrid.appendChild(card);
+      });
+
+      renderSummary();
+    }
+
+    function renderDetail() {
+      const rw = data.find((item) => item.id === currentRwId);
+      if (!rw) {
+        currentRwId = null;
+        renderHome();
+        return;
+      }
+
+      homeView.classList.add('hidden');
+      detailView.classList.remove('hidden');
+      detailTitle.textContent = rw.name;
+      detailSubtitle.textContent = `Jumlah tiang yang sudah tertanam di ${rw.name}`;
+      rtList.innerHTML = '';
+
+      if (!rw.rts.length) {
+        rtList.innerHTML = '<div class="card"><p>Belum ada RT di RW ini. Tambahkan RT pertama.</p></div>';
+        return;
+      }
+
+      rw.rts.forEach((rt) => {
+        const item = document.createElement('div');
+        item.className = 'item';
+
+        const info = document.createElement('div');
+        info.innerHTML = `<strong>${rt.name}</strong><div class="small">Jumlah saat ini</div>`;
+
+        const controls = document.createElement('div');
+        controls.className = 'count-box';
+
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.value = rt.count;
+        input.addEventListener('change', () => {
+          rt.count = Math.max(0, Number(input.value) || 0);
+          saveData();
+          renderSummary();
+          renderDetail();
+        });
+
+        const plusBtn = document.createElement('button');
+        plusBtn.className = 'btn-warning';
+        plusBtn.type = 'button';
+        plusBtn.textContent = '+1';
+        plusBtn.addEventListener('click', () => {
+          rt.count += 1;
+          saveData();
+          renderSummary();
+          renderDetail();
+        });
+
+        const minusBtn = document.createElement('button');
+        minusBtn.className = 'btn-secondary';
+        minusBtn.type = 'button';
+        minusBtn.textContent = '-1';
+        minusBtn.addEventListener('click', () => {
+          rt.count = Math.max(0, rt.count - 1);
+          saveData();
+          renderSummary();
+          renderDetail();
+        });
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn-danger';
+        deleteBtn.type = 'button';
+        deleteBtn.textContent = 'Hapus';
+        deleteBtn.addEventListener('click', () => {
+          const removedRt = { ...rt };
+          rw.rts = rw.rts.filter((itemRt) => itemRt.id !== rt.id);
+          saveData();
+          renderSummary();
+          renderDetail();
+          showUndo(`RT ${rt.name} dihapus.`, () => {
+            const parent = data.find((item) => item.id === rw.id);
+            if (parent) {
+              parent.rts.push(removedRt);
+              saveData();
+              renderSummary();
+              renderDetail();
+            }
+          });
+        });
+
+        controls.append(input, plusBtn, minusBtn);
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        actions.append(controls, deleteBtn);
+        item.append(info, actions);
+        rtList.appendChild(item);
+      });
+    }
+
+    function exportToExcel() {
+      const rows = [['RW', 'Kelurahan', 'RT', 'Jumlah Tiang']];
+      data.forEach((rw) => {
+        rw.rts.forEach((rt) => {
+          rows.push([rw.name, rw.kelurahan, rt.name, rt.count]);
+        });
+      });
+
+      if (window.XLSX) {
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Laporan Tiang');
+        XLSX.writeFile(workbook, `laporan-tiang-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      } else {
+        const csvContent = rows.map((row) => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'laporan-tiang.csv';
+        link.click();
+      }
+    }
+
+    rwForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const name = rwNameInput.value.trim();
+      if (!name) return;
+
+      data.unshift({
+        id: 'rw-' + Date.now(),
+        name,
+        kelurahan: kelurahanNameInput.value.trim(),
+        rts: []
+      });
+      saveData();
+      rwForm.reset();
+      renderHome();
+    });
+
+    rtForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const rw = data.find((item) => item.id === currentRwId);
+      if (!rw) return;
+
+      const name = rtNameInput.value.trim();
+      const count = Math.max(0, Number(rtCountInput.value) || 0);
+      if (!name) return;
+
+      rw.rts.push({
+        id: 'rt-' + Date.now(),
+        name,
+        count
+      });
+      saveData();
+      rtForm.reset();
+      rtCountInput.value = '0';
+      renderSummary();
+      renderDetail();
+    });
+
+    backBtn.addEventListener('click', () => {
+      currentRwId = null;
+      renderHome();
+    });
+
+    exportBtn.addEventListener('click', exportToExcel);
+
+    renderHome();
+  </script>
+</body>
+</html>
