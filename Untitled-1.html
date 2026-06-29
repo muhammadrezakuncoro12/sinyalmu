@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Sinyalku.net - Pembagian Tugas</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 100%; 
+            width: 95%;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1, h3 {
+            text-align: center;
+            margin: 5px 0;
+            color: #333;
+        }
+        h3 {
+            color: #007bff;
+            font-weight: normal;
+            margin-bottom: 25px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .export-area {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+        }
+        .btn-excel {
+            background-color: #28a745;
+        }
+        .btn-excel:hover {
+            background-color: #218838;
+        }
+        .btn-pdf {
+            background-color: #dc3545;
+        }
+        .btn-pdf:hover {
+            background-color: #c82333;
+        }
+        table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+            background: white;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #343a40;
+            color: white;
+        }
+        .status-select {
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: auto;
+        }
+        .btn-hapus {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-hapus:hover {
+            background-color: #bd2130;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>TIKET BACKBONE SINYALKU.NET</h1>
+        <h3>PEMBAGIAN TUGAS HARIAN TIM</h3>
+        
+        <div class="form-group">
+            <label>Pilih Tim Lapangan:</label>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; max-height: 150px; overflow-y: auto; background: white;">
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Tomy"> Tomy</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Ajis A"> Ajis A</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Riki (Tanam Tiang)"> Riki (Tanam Tiang)</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Rahmat (Tanam Tiang)"> Rahmat (Tanam Tiang)</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Oyong"> Oyong</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Ajis B"> Ajis B</label>
+                <label style="display: block; margin-bottom: 5px;"><input type="checkbox" class="tim-cb" value="Takim"> Takim</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="job">Jenis pekerjaan:</label>
+            <input type="text" id="job" placeholder="Contoh: kabel kendor">
+        </div>
+        
+        <div class="form-group">
+            <label for="loc">Lokasi / Koordinat:</label>
+            <input type="text" id="loc" placeholder="Contoh: rajiman">
+        </div>
+
+        <div class="form-group">
+            <label for="ins">Instruksi Khusus Untuk Tim:</label>
+            <textarea id="ins" placeholder="Contoh: rapihkan"></textarea>
+        </div>
+        
+        <button id="btnKirim">KIRIM INSTRUKSI TIKET</button>
+
+        <div class="export-area">
+            <button id="btnExcel" class="btn-excel" style="margin:0;">📊 Export ke Excel</button>
+            <button id="btnPdf" class="btn-pdf" style="margin:0;">📄 Download PDF</button>
+        </div>
+
+        <div id="printArea">
+            <table id="tabelInstruksi">
+                <thead>
+                    <tr>
+                        <th>Tim</th>
+                        <th>Pekerjaan</th>
+                        <th>Lokasi</th>
+                        <th>Instruksi Kerja</th>
+                        <th>Status</th>
+                        <th class="no-export">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const opsiStatus = [
+            { teks: '⏳ Dalam Pekerjaan', value: 'Dalam Pekerjaan', warna: '#ffc107', textWarna: '#000' },
+            { teks: '✅ Done', value: 'Done', warna: '#28a745', textWarna: '#fff' },
+            { teks: '❌ Pending', value: 'Pending', warna: '#dc3545', textWarna: '#fff' }
+        ];
+
+        let databaseTiket = JSON.parse(localStorage.getItem('tiketSinyalku')) || [];
+
+        function simpanKeLocalStorage() {
+            localStorage.setItem('tiketSinyalku', JSON.stringify(databaseTiket));
+        }
+
+        function setupDropdownStatus(selectElement, statusAwal, indexData) {
+            selectElement.innerHTML = '';
+            opsiStatus.forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value;
+                o.text = opt.teks;
+                if (opt.value === statusAwal) o.selected = true;
+                selectElement.appendChild(o);
+            });
+
+            function updateWarna() {
+                const pilihan = opsiStatus.find(o => o.value === selectElement.value);
+                selectElement.style.backgroundColor = pilihan.warna;
+                selectElement.style.color = pilihan.textWarna;
+            }
+
+            selectElement.addEventListener('change', function() {
+                updateWarna();
+                databaseTiket[indexData].status = selectElement.value;
+                simpanKeLocalStorage();
+            });
+
+            updateWarna();
+        }
+
+        function renderTabel() {
+            const tbody = document.getElementById('tabelInstruksi').getElementsByTagName('tbody')[0];
+            tbody.innerHTML = '';
+
+            databaseTiket.forEach((tiket, index) => {
+                const barisBaru = tbody.insertRow();
+
+                const c0 = barisBaru.insertCell(0); c0.innerText = tiket.tim; c0.contentEditable = "true";
+                const c1 = barisBaru.insertCell(1); c1.innerText = tiket.masalah; c1.contentEditable = "true";
+                const c2 = barisBaru.insertCell(2); c2.innerText = tiket.lokasi; c2.contentEditable = "true";
+                const c3 = barisBaru.insertCell(3); c3.innerText = tiket.instruksi; c3.contentEditable = "true";
+
+                [c0, c1, c2, c3].forEach((cell, iCell) => {
+                    cell.addEventListener('blur', function() {
+                        const keys = ['tim', 'masalah', 'lokasi', 'instruksi'];
+                        databaseTiket[index][keys[iCell]] = cell.innerText;
+                        simpanKeLocalStorage();
+                    });
+                });
+                
+                // Status
+                const c4 = barisBaru.insertCell(4);
+                const selectBaru = document.createElement('select');
+                selectBaru.className = 'status-select';
+                c4.appendChild(selectBaru);
+                setupDropdownStatus(selectBaru, tiket.status, index);
+
+                // Aksi Hapus
+                const c5 = barisBaru.insertCell(5);
+                c5.className = "no-export";
+                const btnHapus = document.createElement('button');
+                btnHapus.innerText = 'Hapus';
+                btnHapus.className = 'btn-hapus';
+                btnHapus.style.width = 'auto';
+                btnHapus.style.margin = '0';
+                btnHapus.onclick = function() {
+                    if(confirm('Yakin ingin menghapus tiket kerjaan ini?')) {
+                        databaseTiket.splice(index, 1);
+                        simpanKeLocalStorage();
+                        renderTabel();
+                    }
+                };
+                c5.appendChild(btnHapus);
+            });
+        }
+
+        // FUNGSI UTAMA TOMBOL KIRIM
+        document.getElementById('btnKirim').addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // 1. Ambil nama dari checkbox yang dicentang
+            const checkboxTerpilih = document.querySelectorAll('.tim-cb:checked');
+            let timTerpilih = Array.from(checkboxTerpilih).map(cb => cb.value);
+            const namaTim = timTerpilih.join(', ');
+
+            // 2. Ambil data lewat ID input
+            const pekerjaan = document.getElementById('job').value;
+            const lokasi = document.getElementById('loc').value;
+            const instruksi = document.getElementById('ins').value;
+
+            if(namaTim === '') {
+                alert('Tolong pilih minimal satu tim lapangan dulu bos!');
+                return;
+            }
+            if(pekerjaan.trim() === '' || lokasi.trim() === '' || instruksi.trim() === '') {
+                alert('Tolong lengkapi semua kolom instruksi dulu bos!');
+                return;
+            }
+
+            // 3. Masukkan ke database lokal
+            databaseTiket.push({
+                tim: namaTim,
+                masalah: pekerjaan,
+                lokasi: lokasi,
+                instruksi: instruksi,
+                status: 'Dalam Pekerjaan'
+            });
+
+            simpanKeLocalStorage();
+            renderTabel();
+
+            // 4. Bersihkan form kembali kosong
+            document.getElementById('job').value = '';
+            document.getElementById('loc').value = '';
+            document.getElementById('ins').value = '';
+            checkboxTerpilih.forEach(cb => cb.checked = false);
+        });
+
+        // ================= FITUR EXPORT EXCEL =================
+        document.getElementById('btnExcel').addEventListener('click', function() {
+            if(databaseTiket.length === 0) {
+                alert('Tidak ada data tiket untuk di-export!');
+                return;
+            }
+            
+            const dataExcel = databaseTiket.map((t, idx) => ({
+                "No": idx + 1,
+                "Tim Lapangan": t.tim,
+                "Jenis Pekerjaan": t.masalah,
+                "Lokasi / Koordinat": t.lokasi,
+                "Instruksi Kerja": t.instruksi,
+                "Status": t.status
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(dataExcel);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Tiket Harian");
+            
+            const tgl = new Date().toISOString().slice(0,10);
+            XLSX.writeFile(workbook, `Tiket_Sinyalku_${tgl}.xlsx`);
+        });
+
+        // ================= FITUR EXPORT PDF =================
+        document.getElementById('btnPdf').addEventListener('click', function() {
+            if(databaseTiket.length === 0) {
+                alert('Tidak ada data tiket untuk dicetak!');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'pt', 'a4'); 
+
+            const elemenHapus = document.querySelectorAll('.no-export');
+            elemenHapus.forEach(el => el.style.display = 'none');
+
+            const target = document.getElementById('printArea');
+
+            html2canvas(target, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const imgWidth = 780; 
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                doc.setFontSize(16);
+                doc.text("LAPORAN TIKET BACKBONE SINYALKU.NET", 40, 40);
+                doc.setFontSize(10);
+                doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 40, 55);
+
+                doc.addImage(imgData, 'PNG', 40, 80, imgWidth, imgHeight);
+                
+                const tgl = new Date().toISOString().slice(0,10);
+                doc.save(`Tiket_Sinyalku_${tgl}.pdf`);
+
+                elemenHapus.forEach(el => el.style.display = '');
+            });
+        });
+
+        // Jalankan tabel pertama kali load
+        renderTabel();
+    </script>
+</body>
+</html>
